@@ -1,0 +1,344 @@
+---
+title: "Data Analysis Skill Test"
+author: "Larissa Augusto"
+date: "03/07/2020"
+output: pdf_document
+---
+
+Case 1
+```{r}
+
+#install.packages('forecast')
+#install.packages('TTR')
+require(forecast)
+require(TTR)
+
+#loading data
+dados <- read.csv(file="TFP.csv", header=T, sep=",", dec=".")
+str(dados)
+
+#Exploratory data analysis
+plot(dados)
+
+#boxplot 
+boxplot(rtfpna~isocode, data=dados, xlab = "Country")
+
+#table with some important data
+max_can <- (max(dados$rtfpna[dados$isocode=="CAN"]))
+max_can_y <- dados$year[which(dados$rtfpna==max_can)]
+max_usa <- (max(dados$rtfpna[dados$isocode=="USA"]))
+max_usa_y <- dados$year[which(dados$rtfpna==max_usa)]
+max_mex <- (max(dados$rtfpna[dados$isocode=="MEX"]))
+max_mex_y <- dados$year[which(dados$rtfpna==max_mex)]
+max_year<-c(max_can_y,max_mex_y,max_usa_y)
+max_values<-c(max_can,max_mex,max_usa)
+min_can <- (min(dados$rtfpna[dados$isocode=="CAN"]))
+min_can_y <- (dados$year[which(dados$rtfpna==min_can)])
+min_usa <- (min(dados$rtfpna[dados$isocode=="USA"]))
+min_usa_y <- dados$year[which(dados$rtfpna==min_usa)]
+min_mex <- (min(dados$rtfpna[dados$isocode=="MEX"]))
+min_mex_y <- dados$year[which(dados$rtfpna==min_mex)]
+min_year<-c(min_can_y,min_mex_y,min_usa_y)
+min_values<-c(min_can,min_mex,min_usa)
+
+tabela <- as.data.frame(rbind(max_year, round(max_values,3), min_year,round(min_values,3)))
+colnames(tabela)<-c("Canada", "Mexico", "United States")
+rownames(tabela)<-c("Year of the maximum value","Maximum value","Year of the minimum value","Minimum value" )
+tabela
+
+#Comparison between the evolution of the countries
+usa <- ts(subset(dados, isocode=="USA", select=c(isocode,year, rtfpna)),start=1950, freq=1)
+can <- ts(subset(dados, isocode=="CAN", select=c(isocode,year, rtfpna)),start=1950, freq=1)
+mex <- ts(subset(dados, isocode=="MEX", select=c(isocode,year, rtfpna)),start=1950, freq=1)
+
+
+par(mfrow=c(1,1))
+plot(usa[,3],main='', xlab='Ano', ylab='',col='blue',bty='l')
+par(new=TRUE)
+plot(can[,3],axes=F, ann=F,col='red',)
+par(new=TRUE)
+plot(mex[,3],axes=F, ann=F,col='green',)
+
+legend('topleft',
+c('USA', 'CANADA','MEXICO'),
+col=c('blue', 'red', 'green'), lty=1,
+bty='n')
+grid(col='darkgrey')
+
+#Forecast for the next 10 years
+dadoscan2<-ts(subset(dados, isocode=="CAN", select=c(rtfpna)),start=1950, freq=1)
+fc_can <- snaive(dadoscan2, 10)
+dadosmex2<-ts(subset(dados, isocode=="MEX", select=c(rtfpna)),start=1950, freq=1)
+fc_mex <- snaive(dadosmex2, 10)
+dadosusa2<-ts(subset(dados, isocode=="USA", select=c(rtfpna)),start=1950, freq=1)
+fc_usa <- snaive(dadosusa2, 10)
+
+autoplot(fc_can,col='red')
+autoplot(fc_mex,col='blue')
+autoplot(fc_usa,col='green')
+
+#Looking at residuals
+checkresiduals(fc_can)
+summary(fc_can)
+checkresiduals(fc_mex)
+summary(fc_mex)
+checkresiduals(fc_usa)
+summary(fc_usa)
+
+
+```
+
+Case 2
+```{r}
+
+
+#install.packages('tidyr')
+require(tidyr)
+#install.packages('ggplot2')
+require(ggplot2)
+#install.packages('dygraphs')
+require(dygraphs)
+#install.packages('xts')
+require(xts)   
+#install.packages('tidyverse')
+require(tidyverse)
+#install.packages('lubridate')
+require(lubridate)
+
+
+#open the file and subset
+dados2 <- read.csv(file="data_comexstat.csv", header=T, sep=",", dec=".")
+dados2 <-separate(data = dados2,col = "date",into = c("year","month","day"))
+
+
+soybeans_exp <- subset(dados2, product =='soybeans'&type=='Export')
+soybean_oil_exp <- subset(dados2, product =='soybean_oil'&type=='Export')
+soybean_meal_exp <- subset(dados2, product =='soybean_meal'&type=='Export')
+corn_exp <- subset(dados2, product =='corn'&type=='Export')
+sugar_exp <- subset(dados2, product =='sugar'&type=='Export')
+wheat_exp <- subset(dados2, product =='wheat'&type=='Export')
+
+soybeans_imp <- subset(dados2, product =='soybeans'&type=='Import')
+soybean_oil_imp <- subset(dados2, product =='soybean_oil'&type=='Import')
+soybean_meal_imp <- subset(dados2, product =='soybean_meal'&type=='Import')
+corn_imp <- subset(dados2, product =='corn'&type=='Import')
+sugar_imp <- subset(dados2, product =='sugar'&type=='Import')
+wheat_imp <- subset(dados2, product =='wheat'&type=='Import')
+
+
+```
+
+1. Show the evolution of total monthly and total annual exports from Brazil (all states and to everywhere) of ‘soybeans’, ‘soybean oil’ and ‘soybean meal’;
+
+```{r} 
+theme_set(theme_bw())
+
+#per year
+
+par(mfrow=c(3,1))
+ggplot(soybean_meal_exp, aes(x=year, y=tons)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Soybean meal exportation", 
+       subtitle="tons per year", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(soybean_oil_exp, aes(x=year, y=tons)) + 
+  geom_bar(stat="identity", width=.5, fill="green4") + 
+  labs(title="Soybean oil exportation", 
+       subtitle="tons per year", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(soybeans_exp, aes(x=year, y=tons)) + 
+  geom_bar(stat="identity", width=.5, fill="blue") + 
+  labs(title="Soybeans exportation", 
+       subtitle="tons per year", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+#per month
+
+par(mfrow=c(3,1))
+ggplot(soybean_meal_exp, aes(x=month, y=tons)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Soybean meal exportation", 
+       subtitle="tons per month", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(soybean_oil_exp, aes(x=month, y=tons)) + 
+  geom_bar(stat="identity", width=.5, fill="green4") + 
+  labs(title="Soybean oil exportation", 
+       subtitle="tons per month", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(soybeans_exp, aes(x=month, y=tons)) + 
+  geom_bar(stat="identity", width=.5, fill="blue") + 
+  labs(title="Soybeans exportation", 
+       subtitle="tons per month", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+```
+
+2. What are the 3 most important products exported by Brazil in the last 5 years?
+```{r} 
+
+
+soybeans <- sum(soybeans_exp$tons[which(soybeans_exp$year >= 2015 )])
+soybeanoil <- sum(soybean_oil_exp$tons[which(soybean_oil_exp$year >= 2015 )])
+soybeanmeal <- sum(soybean_meal_exp$tons[which(soybean_meal_exp$year >= 2015 )])
+corn <- sum(corn_exp$tons[which(corn_exp$year >= 2015 )])
+sugar <- sum(sugar_exp$tons[which(sugar_exp$year >= 2015 )])
+wheat <- sum(wheat_exp$tons[which(wheat_exp$year >= 2015 )])
+
+allcrops <- cbind(soybeans,soybeanoil,soybeanmeal,corn,sugar,wheat)
+colnames(allcrops) <- c("Soybeans","Soybean oil","Soybean meal","Corn","Sugar","Wheat")
+rownames(allcrops) <- ("tons")
+barplot(allcrops, main =" Tons in the last 5 years", col="green4")
+
+# We can see through the exports graph of the last 5 years that the most important products were soybeans, corn and sugar.
+
+```
+
+3.What are the main routes through which Brazil have been exporting ‘corn’ in the last few years? Are there differences in the relative importance of routes depending on the product?
+```{r} 
+
+
+corn_fewyears <- subset(dados2, product =='corn'&year>=2015)
+corn_fewyears <- aggregate(corn_fewyears$usd, by=list(Category=corn_fewyears$route), FUN=sum)
+
+ggplot(corn_fewyears, aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="The main routes through which Brazil have been exporting", 
+       subtitle="CORN",
+       x = "Routes",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+# For corn exports, the sea has been the main route and when compared to the other routes (air, ground, river and others) it stands out significantly. The other routes do not differ between them.
+```
+
+4.Which countries have been the most important trade partners for Brazil in terms of ‘corn’ and ‘sugar’ in the last 3 years?
+```{r} 
+#install.packages('tidyselect')
+require(tidyselect)
+
+corn_part <- subset(dados2, product =='corn'&year>=2017)
+corn_part <- aggregate(corn_part$usd, by=list(Category=corn_part$country), FUN=sum)  
+corn_part <- subset(corn_part, x>1000000000)
+
+sugar_part <- subset(dados2, product =='sugar'&year>=2017)
+sugar_part <- aggregate(sugar_part$usd, by=list(Category=sugar_part$country), FUN=sum)  
+sugar_part <- subset(sugar_part, x>1000000000)
+
+
+
+ggplot(corn_part, aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important trade partners for Brazil ", 
+       subtitle="CORN",
+       x = "Countries",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(sugar_part, aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important trade partners for Brazil ", 
+       subtitle="SUGAR",
+       x = "Countries",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+#for the last 3 years the most important traders were Iran, Japan and Vietnam for corn and Algeria, Bangladesh and India for sugar, considering imports and exports.
+
+```
+
+5. For each of the products in the dataset, show the 5 most important states in terms of exports?
+
+```{r} 
+
+corn_state <- aggregate(corn_exp$usd, by=list(Category=corn_exp$state), FUN=sum)
+corn_state <- corn_state[order(-corn_state$x),]
+soybeans_state <- aggregate(soybeans_exp$usd, by=list(Category=soybeans_exp$state), FUN=sum)
+soybeans_state <- soybeans_state[order(-soybeans_state$x),]
+soybeanoil_state <- aggregate(soybean_oil_exp$usd, by=list(Category=soybean_oil_exp$state), FUN=sum)
+soybeanoil_state <- soybeanoil_state[order(-soybeanoil_state$x),]
+soybeanmeal_state <- aggregate(soybean_meal_exp$usd, by=list(Category=soybean_meal_exp$state), FUN=sum)
+soybeanmeal_state <- soybeanmeal_state[order(-soybeanmeal_state$x),]
+sugar_state <- aggregate(sugar_exp$usd, by=list(Category=sugar_exp$state), FUN=sum)
+sugar_state <- sugar_state[order(-sugar_state$x),]
+wheat_state <- aggregate(wheat_exp$usd, by=list(Category=wheat_exp$state), FUN=sum)
+wheat_state <- wheat_state[order(-wheat_state$x),]
+
+
+ggplot(corn_state[1:5,], aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important states in terms of exports", 
+       subtitle="CORN",
+       x = "States",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(soybeans_state[1:5,], aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important states in terms of exports", 
+       subtitle="SOYBEANS",
+       x = "States",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(soybeanoil_state[1:5,], aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important states in terms of exports", 
+       subtitle="SOYBEAN OIL",
+       x = "STATES",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(soybeanmeal_state[1:5,], aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important states in terms of exports", 
+       subtitle="SOYBEAN MEAL",
+       x = "States",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(sugar_state[1:5,], aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important states in terms of exports", 
+       subtitle="SUGAR",
+       x = "States",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(wheat_state[1:5,], aes(x= reorder(Category, -x), y=x)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Most important states in terms of exports", 
+       subtitle="WHEAT",
+       x = "States",
+       y = "usd",
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+#Most important states in terms of exports for corn were MT, PR and GO; for soybeans were MT, PR and RS; for soybean oil were PR, SC and MT; for soybean meal were MT, PR and RS; for sugar were SP, MG and PR and for wheat were RS, PR and SC. 
+
+
+```
+
+
+6. Now, we ask you to show your modelling skills. Feel free to use any type of modelling approach, but bear in mind that the modelling approach depends on the nature of your data, and so different models yield different estimates and forecasts. To help you out in this task we also provide you with a dataset of possible covariates (.xlsx). They all come from public sources (IMF, World Bank) and are presented in index number format. Question: What should be the total brazilian soybeans, soybean_meal, and corn export forecasts, in tons, for the next 11 years (2020-2030)? We’re mostly interested in the annual forecast.
+```{r} 
+
+
+```
+
